@@ -1,14 +1,15 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, status, viewsets, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from users.permissions import IsModerator, IsOwner
 
 from .models import Course, Lesson, Subscription
 from .paginators import CoursePagination, LessonPagination
-from .serializers import CourseSerializer, LessonSerializer
+from .serializers import CourseSerializer, LessonSerializer, SubscriptionRequestSerializer, SubscriptionResponseSerializer
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -90,8 +91,42 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class SubscriptionAPIView(APIView):
+
+    @extend_schema(
+        description=(
+                "Добавляет подписку на курс или удаляет "
+                "существующую подписку текущего пользователя."
+        ),
+        request=SubscriptionRequestSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=SubscriptionResponseSerializer,
+                description="Подписка удалена.",
+            ),
+            201: OpenApiResponse(
+                response=SubscriptionResponseSerializer,
+                description="Подписка добавлена.",
+            ),
+            400: OpenApiResponse(
+                description="Некорректный course_id.",
+            ),
+            401: OpenApiResponse(
+                description="Пользователь не авторизован.",
+            ),
+            404: OpenApiResponse(
+                description="Курс не найден.",
+            ),
+        },
+    )
+
     def post(self, request):
-        course_id = request.data.get("course_id")
+        serializer = SubscriptionRequestSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        course_id = serializer.validated_data["course_id"]
+
         course = get_object_or_404(Course, pk=course_id)
 
         subscription = Subscription.objects.filter(

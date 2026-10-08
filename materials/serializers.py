@@ -30,10 +30,10 @@ class CourseSerializer(serializers.ModelSerializer):
             "lessons",
         ]
 
-    def get_lesson_count(self, obj):
+    def get_lesson_count(self, obj) -> int:
         return obj.lessons.count()
 
-    def get_is_subscribed(self, obj):
+    def get_is_subscribed(self, obj) -> bool:
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
@@ -50,3 +50,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         model = Subscription
         fields = "__all__"
         read_only_fields = ["user"]
+
+
+class SubscriptionRequestSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField(min_value=1)
+
+
+class SubscriptionResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
